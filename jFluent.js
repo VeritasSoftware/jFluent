@@ -18,7 +18,7 @@ $(document).ready(function () {
     if (allInputs != null) {
         allInputs.change(function () {
             if (func != null) {
-                $.jFluentValidate(func);
+                $.jFluentValidate();
             }
         });
     }    
@@ -37,9 +37,7 @@ $(document).ready(function () {
         if (func != null) {
             func.apply({}, []);
 
-            for (i = 1; i < errors.length; i++) {
-                DisplayErrorMessage(i);
-            }
+            DisplayErrorMessages();
 
             return errors.length <= 1;
         }
@@ -253,7 +251,7 @@ $(document).ready(function () {
 
         return this;
     },
-    $.fn.jFluentIsValid = function () {
+    $.jFluentIsValid = function () {
         return errors.length <= 1;
     },
     $.jFluentErrors = function () {
@@ -266,6 +264,12 @@ function ClearErrorMessages() {
     $(".field-validation-error").empty();
 
     $(".field-validation-error").addClass("field-validation-valid");
+}
+
+function DisplayErrorMessages() {
+    for (i = 1; i < errors.length; i++) {
+        DisplayErrorMessage(i);
+    }
 }
 
 function DisplayErrorMessage(i) {
