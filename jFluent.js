@@ -21,7 +21,7 @@ $(document).ready(function () {
                 $.jFluentValidate();
             }
         });
-    }    
+    }
 });
 
 // Plug-in
@@ -39,6 +39,8 @@ $(document).ready(function () {
 
             DisplayErrorMessages();
 
+            $.jFluentValidationSummary();
+
             return errors.length <= 1;
         }
 
@@ -47,7 +49,7 @@ $(document).ready(function () {
     $.fn.CreditCard = function (errorMessage) {
         var input = this.val();
         if (CheckLuhn(input)) {
-            if (this.val().match(strRegexCreditCard) == null) {
+            if (input.match(strRegexCreditCard) == null) {
                 AddError(this.attr("id"), errorMessage, "Not a valid credit card number.");
             }
         }
@@ -59,7 +61,7 @@ $(document).ready(function () {
     },
     $.fn.Email = function (errorMessage) {
         var input = this.val();
-        
+
         if (input.match(strRegexEmail) == null) {
             AddError(this.attr("id"), errorMessage, "Not a valid email address.");
         }
@@ -68,7 +70,7 @@ $(document).ready(function () {
     },
     $.fn.ISOCurrencyCode = function (errorMessage) {
         var input = this.val();
-        
+
         if (input.match(strRegexISOCurrencyCodes) == null) {
             AddError(this.attr("id"), errorMessage, "Not a valid currency code.");
         }
@@ -84,7 +86,7 @@ $(document).ready(function () {
         }
 
         var input = this.val();
-        
+
         if (input.match("^(?=[" + numericUnicodeRange + "]*?[" + alphaUnicodeRange + "]+)(?=[" + alphaUnicodeRange + "]*?[" + numericUnicodeRange + "]+)[" + alphaUnicodeRange + numericUnicodeRange + "]+$") == null) {
             AddError(this.attr("id"), errorMessage, "Not alphanumeric.");
         }
@@ -97,7 +99,7 @@ $(document).ready(function () {
         }
 
         var input = this.val();
-        
+
         if (input.match("^[" + alphaUnicodeRange + "]+$") == null) {
             AddError(this.attr("id"), errorMessage, "Not alpha.");
         }
@@ -110,7 +112,7 @@ $(document).ready(function () {
         }
 
         var input = this.val();
-        
+
         if (input.match("^[" + numericUnicodeRange + "]+$") == null) {
             AddError(this.attr("id"), errorMessage, "Not numeric.");
         }
@@ -119,7 +121,7 @@ $(document).ready(function () {
     },
     $.fn.Matches = function (regExp, errorMessage) {
         var input = this.val();
-        
+
         if (input.match(regExp) == null) {
             AddError(this.attr("id"), errorMessage, "Match not valid.");
         }
@@ -151,7 +153,7 @@ $(document).ready(function () {
         return this;
     },
     $.fn.LengthGreaterThan = function (length, orEqual, errorMessage) {
-        if (orEqual){
+        if (orEqual) {
             if (this.val().length < length) {
                 AddError(this.attr("id"), errorMessage, "The item is not greater than or equal to.");
             }
@@ -165,7 +167,7 @@ $(document).ready(function () {
         return this;
     },
     $.fn.LengthLessThan = function (length, orEqual, errorMessage) {
-        if (orEqual){
+        if (orEqual) {
             if (this.val().length > length) {
                 AddError(this.attr("id"), errorMessage, "The item is not greater than or equal to.");
             }
@@ -193,7 +195,7 @@ $(document).ready(function () {
         return this;
     },
     $.fn.GreaterThan = function (item, orEqual, errorMessage) {
-        if (orEqual){
+        if (orEqual) {
             if (this.val() < item) {
                 AddError(this.attr("id"), errorMessage, "The item is not greater than or equal to.");
             }
@@ -207,7 +209,7 @@ $(document).ready(function () {
         return this;
     },
     $.fn.LessThan = function (item, orEqual, errorMessage) {
-        if (orEqual){
+        if (orEqual) {
             if (this.val() > item) {
                 AddError(this.attr("id"), errorMessage, "The item is not less than or equal to.");
             }
@@ -242,14 +244,40 @@ $(document).ready(function () {
     },
     $.fn.SelectRequired = function (func, errorMessage) {
         var inputType = $(this).attr("type");
-        $("input:" + inputType + "[name=" +  $(this).attr("name")  + "]:checked").Required(func, errorMessage, this.attr("id"));       
+        $("input:" + inputType + "[name=" + $(this).attr("name") + "]:checked").Required(func, errorMessage, this.attr("id"));
     },
     $.fn.Required = function (func, errorMessage, errorId) {
-        if (!func.apply({}, [this.val()])) {            
+        if (!func.apply({}, [this.val()])) {
             AddError(errorId != null ? errorId : this.attr("id"), errorMessage, "Required rule was not met.");
         }
 
         return this;
+    },
+    $.jFluentValidationSummary = function () {
+        var vSummary = $(".validation-summary-valid");
+
+        if (vSummary.length == 0) {
+            vSummary = $(".validation-summary-errors")
+        }
+
+        if (vSummary.length > 0) {
+            var ul = vSummary.children("ul");
+
+            if (ul.length > 0 & errors.length > 1) {
+                vSummary.addClass("validation-summary-errors");
+                vSummary.removeClass("validation-summary-valid");
+                ul.html("");
+                for (i = 1; i < errors.length; i++) {
+                    ul.append("<li>" + errors[i][1] + "</li>")
+                }
+            }
+            else {
+                if (ul.length > 0) {
+                    ul.html("");
+                }
+                vSummary.addClass("validation-summary-valid");
+            }
+        }
     },
     $.jFluentIsValid = function () {
         return errors.length <= 1;
@@ -307,4 +335,4 @@ function CheckLuhn(input) {
         sum += digit;
     }
     return sum > 0 ? (sum % 10) == 0 : false;
-} 
+}
