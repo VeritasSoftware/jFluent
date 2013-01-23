@@ -4,41 +4,47 @@
 /////////////////////// Date: Oct 2012            //////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-var errors = [,];
+//Errors array
+var errors = [, ];
+
+//Rules function
 var func = null;
 
 //Constants
 var strRegexCreditCard = "^(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|6(?:011|5[0-9][0-9])[0-9]{12}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|(?:2131|1800|35\d{3})\d{11})$";
-var strRegexEmail = "[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?";
+var strRegexEmail = "[A-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[A-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[A-z0-9](?:[A-z0-9-]*[A-z0-9])?\.)+[A-z0-9](?:[A-z0-9-]*[A-z0-9])?";
 var strRegexISOCurrencyCodes = /^(AED|AFN|ALL|AMD|ANG|AOA|ARS|AUD|AWG|AZN|BAM|BBD|BDT|BGN|BHD|BIF|BMD|BND|BOB|BRL|BSD|BTN|BWP|BYR|BZD|CAD|CDF|CHF|CLP|CNY|COP|CRC|CUC|CUP|CVE|CZK|DJF|DKK|DOP|DZD|EGP|ERN|ETB|EUR|FJD|FKP|GBP|GEL|GGP|GHS|GIP|GMD|GNF|GTQ|GYD|HKD|HNL|HRK|HTG|HUF|IDR|ILS|IMP|INR|IQD|IRR|ISK|JEP|JMD|JOD|JPY|KES|KGS|KHR|KMF|KPW|KRW|KWD|KYD|KZT|LAK|LBP|LKR|LRD|LSL|LTL|LVL|LYD|MAD|MDL|MGA|MKD|MMK|MNT|MOP|MRO|MUR|MVR|MWK|MXN|MYR|MZN|NAD|NGN|NIO|NOK|NPR|NZD|OMR|PAB|PEN|PGK|PHP|PKR|PLN|PYG|QAR|RON|RSD|RUB|RWF|SAR|SBD|SCR|SDG|SEK|SGD|SHP|SLL|SOS|SPL|SRD|STD|SVC|SYP|SZL|THB|TJS|TMT|TND|TOP|TRY|TTD|TVD|TWD|TZS|UAH|UGX|USD|UYU|UZS|VEF|VND|VUV|WST|XAF|BEA|CFA|BEA|XCD|XDR|IMF|XOF|BCE|XPF|CFP|YER|ZAR|ZMK|ZWD)$/i;
 
-$(document).ready(function () {
-    var allInputs = $(":input");
-
-    if (allInputs != null) {
-        allInputs.change(function () {
-            if (func != null) {
-                $.jFluentValidate();
-            }
-        });
-    }
-});
+//Flag to add change handlers to input elements
+var addChangeHandlers = false;
 
 // Plug-in
 (function ($) {
     $.jFluentRules = function (rulesFunc) {
+        //Save the rules function
         func = rulesFunc;
+
+        //Set flag to true to add change handlers to elements
+        addChangeHandlers = true;
+
+        //Call rules function which will add the change handlers
+        func.apply({}, []);
     },
     $.jFluentValidate = function () {
-        errors = [,];
+        //Initialise errors
+        errors = [, ];
+
+        addChangeHandlers = false;
 
         ClearErrorMessages();
 
         if (func != null) {
+            //Call rules function to execute validation rules
             func.apply({}, []);
 
             DisplayErrorMessages();
 
+            //Display validation summary
             $.jFluentValidationSummary();
 
             return errors.length <= 1;
@@ -47,6 +53,12 @@ $(document).ready(function () {
         return false;
     },
     $.fn.CreditCard = function (errorMessage) {
+        if (addChangeHandlers)
+        {
+            AddChangeHandler(this);
+            return this;
+        } 
+
         var input = this.val();
         if (CheckLuhn(input)) {
             if (input.match(strRegexCreditCard) == null) {
@@ -60,6 +72,12 @@ $(document).ready(function () {
         return this;
     },
     $.fn.Email = function (errorMessage) {
+        if (addChangeHandlers)
+        {
+            AddChangeHandler(this);
+            return this;
+        }            
+
         var input = this.val();
 
         if (input.match(strRegexEmail) == null) {
@@ -69,6 +87,12 @@ $(document).ready(function () {
         return this;
     },
     $.fn.ISOCurrencyCode = function (errorMessage) {
+        if (addChangeHandlers)
+        {
+            AddChangeHandler(this);
+            return this;
+        }  
+
         var input = this.val();
 
         if (input.match(strRegexISOCurrencyCodes) == null) {
@@ -78,6 +102,12 @@ $(document).ready(function () {
         return this;
     },
     $.fn.IsAlphaNumeric = function (errorMessage, alphaUnicodeRange, numericUnicodeRange) {
+        if (addChangeHandlers)
+        {
+            AddChangeHandler(this);
+            return this;
+        }  
+
         if (alphaUnicodeRange == null) {
             alphaUnicodeRange = "a-zA-Z";
         }
@@ -94,6 +124,12 @@ $(document).ready(function () {
         return this;
     },
     $.fn.IsAlpha = function (errorMessage, alphaUnicodeRange) {
+        if (addChangeHandlers)
+        {
+            AddChangeHandler(this);
+            return this;
+        }  
+
         if (alphaUnicodeRange == null) {
             alphaUnicodeRange = "a-zA-Z";
         }
@@ -107,6 +143,12 @@ $(document).ready(function () {
         return this;
     },
     $.fn.IsNumeric = function (errorMessage, numericUnicodeRange) {
+        if (addChangeHandlers)
+        {
+            AddChangeHandler(this);
+            return this;
+        }  
+
         if (numericUnicodeRange == null) {
             numericUnicodeRange = "0-9";
         }
@@ -120,6 +162,12 @@ $(document).ready(function () {
         return this;
     },
     $.fn.Matches = function (regExp, errorMessage) {
+        if (addChangeHandlers)
+        {
+            AddChangeHandler(this);
+            return this;
+        } 
+
         var input = this.val();
 
         if (input.match(regExp) == null) {
@@ -129,30 +177,60 @@ $(document).ready(function () {
         return this;
     },
     $.fn.Length = function (length, errorMessage) {
+        if (addChangeHandlers)
+        {
+            AddChangeHandler(this);
+            return this;
+        }  
+
         if (this.val().length != length) {
             AddError(this.attr("id"), errorMessage, "The length is not valid.");
         }
         return this;
     },
     $.fn.NotNull = function (errorMessage) {
+        if (addChangeHandlers)
+        {
+            AddChangeHandler(this);
+            return this;
+        }  
+
         if (this.val() == null) {
             AddError(this.attr("id"), errorMessage, "Should not be null.");
         }
         return this;
     },
     $.fn.Equal = function (item, errorMessage) {
+        if (addChangeHandlers)
+        {
+            AddChangeHandler(this);
+            return this;
+        }  
+
         if (this.val() != item) {
             AddError(this.attr("id"), errorMessage, "The item is not equal.");
         }
         return this;
     },
     $.fn.NotEqual = function (item, errorMessage) {
+        if (addChangeHandlers)
+        {
+            AddChangeHandler(this);
+            return this;
+        }  
+
         if (this.val() == item) {
             AddError(this.attr("id"), errorMessage, "The item is equal.");
         }
         return this;
     },
     $.fn.LengthGreaterThan = function (length, orEqual, errorMessage) {
+        if (addChangeHandlers)
+        {
+            AddChangeHandler(this);
+            return this;
+        } 
+
         if (orEqual) {
             if (this.val().length < length) {
                 AddError(this.attr("id"), errorMessage, "The item is not greater than or equal to.");
@@ -167,6 +245,12 @@ $(document).ready(function () {
         return this;
     },
     $.fn.LengthLessThan = function (length, orEqual, errorMessage) {
+        if (addChangeHandlers)
+        {
+            AddChangeHandler(this);
+            return this;
+        }  
+
         if (orEqual) {
             if (this.val().length > length) {
                 AddError(this.attr("id"), errorMessage, "The item is not greater than or equal to.");
@@ -181,6 +265,12 @@ $(document).ready(function () {
         return this;
     },
     $.fn.LengthBetween = function (lowerLimit, upperLimit, exclusive, errorMessage) {
+        if (addChangeHandlers)
+        {
+            AddChangeHandler(this);
+            return this;
+        }  
+
         if (exclusive) {
             if (!(lowerLimit < this.val().length & this.val().length < upperLimit)) {
                 AddError(this.attr("id"), errorMessage, "The item is not between lowerLimit and upperLimit.");
@@ -195,6 +285,12 @@ $(document).ready(function () {
         return this;
     },
     $.fn.GreaterThan = function (item, orEqual, errorMessage) {
+        if (addChangeHandlers)
+        {
+            AddChangeHandler(this);
+            return this;
+        }  
+
         if (orEqual) {
             if (this.val() < item) {
                 AddError(this.attr("id"), errorMessage, "The item is not greater than or equal to.");
@@ -209,6 +305,12 @@ $(document).ready(function () {
         return this;
     },
     $.fn.LessThan = function (item, orEqual, errorMessage) {
+        if (addChangeHandlers)
+        {
+            AddChangeHandler(this);
+            return this;
+        }  
+
         if (orEqual) {
             if (this.val() > item) {
                 AddError(this.attr("id"), errorMessage, "The item is not less than or equal to.");
@@ -223,6 +325,12 @@ $(document).ready(function () {
         return this;
     },
     $.fn.Between = function (lowerLimit, upperLimit, exclusive, errorMessage) {
+        if (addChangeHandlers)
+        {
+            AddChangeHandler(this);
+            return this;
+        }  
+
         if (exclusive) {
             if (!(lowerLimit < this.val() & this.val() < upperLimit)) {
                 AddError(this.attr("id"), errorMessage, "The item is not between lowerLimit and upperLimit.");
@@ -237,16 +345,34 @@ $(document).ready(function () {
         return this;
     },
     $.fn.NotNullOrEmpty = function (errorMessage) {
+        if (addChangeHandlers)
+        {
+            AddChangeHandler(this);
+            return this;
+        } 
+
         if (this.val() == null || this.val() == '') {
             AddError(this.attr("id"), errorMessage, "Value should not be null or empty.");
         }
         return this;
     },
     $.fn.SelectRequired = function (func, errorMessage) {
+        if (addChangeHandlers)
+        {
+            AddChangeHandler(this);
+            return this;
+        } 
+
         var inputType = $(this).attr("type");
         $("input:" + inputType + "[name=" + $(this).attr("name") + "]:checked").Required(func, errorMessage, this.attr("id"));
     },
     $.fn.Required = function (func, errorMessage, errorId) {
+        if (addChangeHandlers)
+        {
+            AddChangeHandler(this);
+            return this;
+        } 
+
         if (!func.apply({}, [this.val()])) {
             AddError(errorId != null ? errorId : this.attr("id"), errorMessage, "Required rule was not met.");
         }
@@ -288,6 +414,7 @@ $(document).ready(function () {
 })(jQuery);
 
 /// Private functions ///
+//Clear error messages from form
 function ClearErrorMessages() {
     $(".field-validation-error").empty();
 
@@ -300,6 +427,7 @@ function DisplayErrorMessages() {
     }
 }
 
+//Display error message in ValidationMessageFor element
 function DisplayErrorMessage(i) {
     var errorMessageElement = $("[data-valmsg-for='" + errors[i][0] + "']");
 
@@ -320,10 +448,12 @@ function DisplayErrorMessage(i) {
     errorMessageElement.addClass("field-validation-error");
 }
 
+//Add error to errors array
 function AddError(id, errorMessage, defaultErrorMessage) {
     errors.push([id, errorMessage != null ? errorMessage : defaultErrorMessage]);
 }
 
+//Check Luhn algorithm for credit card validation
 function CheckLuhn(input) {
     var sum = 0;
     var numdigits = input.length;
@@ -335,4 +465,13 @@ function CheckLuhn(input) {
         sum += digit;
     }
     return sum > 0 ? (sum % 10) == 0 : false;
+}
+
+//Add change handler to input
+function AddChangeHandler(input) {
+    input.change(function () {
+        if (func != null) {
+            $.jFluentValidate();
+        }
+    });
 }
