@@ -4,7 +4,7 @@
 /////////////////////// Date: Oct 2012            //////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-//Errors array
+//Errors array - saves error element id and error msg pair
 var errors = [, ];
 
 //Rules function
@@ -18,20 +18,119 @@ var strRegexISOCurrencyCodes = /^(AED|AFN|ALL|AMD|ANG|AOA|ARS|AUD|AWG|AZN|BAM|BB
 //Flag to add change handlers to input elements
 var addChangeHandlers = false;
 
+//Flags for single field validation
+var jFluentValidateSingleId = null;
+//Flags for firing rules for a field
+var jFluentFireRuleId = null;
+var jFluentIsRuleFiredInProgress = false;
+//Flag to indicate a full validation
+var jFluentFullValidate = false;
+
+var jFluentOptions = null;
+
 // Plug-in
 (function ($) {
-    $.jFluentRules = function (rulesFunc) {
+    $.jFluentRules = function (rulesFunc, options) {
+        jFluentValidateSingleId = null;
+        jFluentFireRuleId = null;
+        jFluentIsRuleFiredInProgress = false;
+        jFluentFullValidate = false;
+
+        jFluentOptions = options;
+
         //Save the rules function
         func = rulesFunc;
 
+        //If validateOnChange option is false then do not attach change handler to inputs
+        //default - attach change handler to inputs
+        if (jFluentOptions != null) {
+            if (!jFluentOptions.validateOnChange) {
+                return;
+            }
+        }
         //Set flag to true to add change handlers to elements
         addChangeHandlers = true;
-
         //Call rules function which will add the change handlers
-        func.apply({}, []);
+        func();
+    },
+    $.fn.FireRulesFor = function (id) {
+        if (jFluentFullValidate) return this;
+
+        if (jFluentIsRuleFiredInProgress) return this;
+
+        if ((jFluentValidateSingleId != $(this).attr("id"))) return this;
+
+        jFluentIsRuleFiredInProgress = true;
+        jFluentFullValidate = false;
+
+        if (addChangeHandlers) return this;
+
+        jFluentFireRuleId = id == null ? $(this).attr("id") : id;
+
+        //errors = [,];
+
+        addChangeHandlers = false;
+
+        ClearSingleErrorMessages(jFluentFireRuleId)
+
+        if (func != null) {
+            //Call rules function to execute validation rules
+            func();
+
+            //Display validation summary
+            $.jFluentValidationSummary();
+
+            jFluentFireRuleId = null;
+            jFluentIsRuleFiredInProgress = false;
+
+            return this;
+        }
+
+        jFluentFireRuleId = null;
+        jFluentIsRuleFiredInProgress = false;
+
+        return this;
+    },
+    $.fn.jFluentValidateSingle = function (id) {
+        jFluentIsRuleFiredInProgress = false;
+        jFluentFireRuleId = null;
+        jFluentFullValidate = false;
+
+        jFluentValidateSingleId = id == null ? $(this).attr("id") : id;
+
+        errors = [, ];
+
+        addChangeHandlers = false;
+
+        //ClearErrorMessages();
+        ClearSingleErrorMessages(jFluentValidateSingleId)
+
+        if (func != null) {
+            //Call rules function to execute validation rules
+            func();
+
+            //Display error msgs
+            DisplayErrorMessages();
+
+            //Display validation summary
+            $.jFluentValidationSummary();
+
+            jFluentValidateSingleId = null;
+
+            return errors.length <= 1;
+        }
+
+        jFluentValidateSingleId = null;
+
+        return false;
     },
     $.jFluentValidate = function () {
-        //Initialise errors
+        jFluentValidateSingleId = null;
+        jFluentFireRuleId = null;
+        jFluentIsRuleFiredInProgress = false;
+        jFluentFullValidate = true;
+
+        //Initialise errors array
         errors = [, ];
 
         addChangeHandlers = false;
@@ -40,12 +139,15 @@ var addChangeHandlers = false;
 
         if (func != null) {
             //Call rules function to execute validation rules
-            func.apply({}, []);
+            func();
 
+            //Display error msgs
             DisplayErrorMessages();
 
             //Display validation summary
             $.jFluentValidationSummary();
+
+            jFluentFullValidate = false;
 
             return errors.length <= 1;
         }
@@ -53,13 +155,16 @@ var addChangeHandlers = false;
         return false;
     },
     $.fn.CreditCard = function (errorMessage) {
-        if (addChangeHandlers)
-        {
+        if (!addChangeHandlers && !jFluentFullValidate && !IsFireRule($(this).attr("id"))) return this;
+        if (!addChangeHandlers && !jFluentFullValidate && !jFluentIsRuleFiredInProgress && !IsSingleValidationElement($(this).attr("id"))) return this;
+
+        if (addChangeHandlers) {
             AddChangeHandler(this);
             return this;
-        } 
+        }
 
         var input = this.val();
+        //If Luhn validation succeeds then regex validation else error
         if (CheckLuhn(input)) {
             if (input.match(strRegexCreditCard) == null) {
                 AddError(this.attr("id"), errorMessage, "Not a valid credit card number.");
@@ -72,14 +177,17 @@ var addChangeHandlers = false;
         return this;
     },
     $.fn.Email = function (errorMessage) {
-        if (addChangeHandlers)
-        {
+        if (!addChangeHandlers && !jFluentFullValidate && jFluentIsRuleFiredInProgress && !IsFireRule($(this).attr("id"))) return this;
+        if (!addChangeHandlers && !jFluentFullValidate && !jFluentIsRuleFiredInProgress && !IsSingleValidationElement($(this).attr("id"))) return this;
+
+        if (addChangeHandlers) {
             AddChangeHandler(this);
             return this;
-        }            
+        }
 
         var input = this.val();
 
+        //Match input against email regex
         if (input.match(strRegexEmail) == null) {
             AddError(this.attr("id"), errorMessage, "Not a valid email address.");
         }
@@ -87,11 +195,13 @@ var addChangeHandlers = false;
         return this;
     },
     $.fn.ISOCurrencyCode = function (errorMessage) {
-        if (addChangeHandlers)
-        {
+        if (!addChangeHandlers && !jFluentFullValidate && !IsFireRule($(this).attr("id"))) return this;
+        if (!addChangeHandlers && !jFluentFullValidate && !jFluentIsRuleFiredInProgress && !IsSingleValidationElement($(this).attr("id"))) return this;
+
+        if (addChangeHandlers) {
             AddChangeHandler(this);
             return this;
-        }  
+        }
 
         var input = this.val();
 
@@ -102,11 +212,13 @@ var addChangeHandlers = false;
         return this;
     },
     $.fn.IsAlphaNumeric = function (errorMessage, alphaUnicodeRange, numericUnicodeRange) {
-        if (addChangeHandlers)
-        {
+        if (!addChangeHandlers && !jFluentFullValidate && !IsFireRule($(this).attr("id"))) return this;
+        if (!addChangeHandlers && !jFluentFullValidate && !jFluentIsRuleFiredInProgress && !IsSingleValidationElement($(this).attr("id"))) return this;
+
+        if (addChangeHandlers) {
             AddChangeHandler(this);
             return this;
-        }  
+        }
 
         if (alphaUnicodeRange == null) {
             alphaUnicodeRange = "a-zA-Z";
@@ -124,11 +236,13 @@ var addChangeHandlers = false;
         return this;
     },
     $.fn.IsAlpha = function (errorMessage, alphaUnicodeRange) {
-        if (addChangeHandlers)
-        {
+        if (!addChangeHandlers && !jFluentFullValidate && !IsFireRule($(this).attr("id"))) return this;
+        if (!addChangeHandlers && !jFluentFullValidate && !jFluentIsRuleFiredInProgress && !IsSingleValidationElement($(this).attr("id"))) return this;
+
+        if (addChangeHandlers) {
             AddChangeHandler(this);
             return this;
-        }  
+        }
 
         if (alphaUnicodeRange == null) {
             alphaUnicodeRange = "a-zA-Z";
@@ -143,11 +257,13 @@ var addChangeHandlers = false;
         return this;
     },
     $.fn.IsNumeric = function (errorMessage, numericUnicodeRange) {
-        if (addChangeHandlers)
-        {
+        if (!addChangeHandlers && !jFluentFullValidate && !IsFireRule($(this).attr("id"))) return this;
+        if (!addChangeHandlers && !jFluentFullValidate && !jFluentIsRuleFiredInProgress && !IsSingleValidationElement($(this).attr("id"))) return this;
+
+        if (addChangeHandlers) {
             AddChangeHandler(this);
             return this;
-        }  
+        }
 
         if (numericUnicodeRange == null) {
             numericUnicodeRange = "0-9";
@@ -162,11 +278,13 @@ var addChangeHandlers = false;
         return this;
     },
     $.fn.Matches = function (regExp, errorMessage) {
-        if (addChangeHandlers)
-        {
+        if (!addChangeHandlers && !jFluentFullValidate && !IsFireRule($(this).attr("id"))) return this;
+        if (!addChangeHandlers && !jFluentFullValidate && !jFluentIsRuleFiredInProgress && !IsSingleValidationElement($(this).attr("id"))) return this;
+
+        if (addChangeHandlers) {
             AddChangeHandler(this);
             return this;
-        } 
+        }
 
         var input = this.val();
 
@@ -177,11 +295,13 @@ var addChangeHandlers = false;
         return this;
     },
     $.fn.Length = function (length, errorMessage) {
-        if (addChangeHandlers)
-        {
+        if (!addChangeHandlers && !jFluentFullValidate && !IsFireRule($(this).attr("id"))) return this;
+        if (!addChangeHandlers && !jFluentFullValidate && !jFluentIsRuleFiredInProgress && !IsSingleValidationElement($(this).attr("id"))) return this;
+
+        if (addChangeHandlers) {
             AddChangeHandler(this);
             return this;
-        }  
+        }
 
         if (this.val().length != length) {
             AddError(this.attr("id"), errorMessage, "The length is not valid.");
@@ -189,11 +309,13 @@ var addChangeHandlers = false;
         return this;
     },
     $.fn.NotNull = function (errorMessage) {
-        if (addChangeHandlers)
-        {
+        if (!addChangeHandlers && !jFluentFullValidate && !IsFireRule($(this).attr("id"))) return this;
+        if (!addChangeHandlers && !jFluentFullValidate && !jFluentIsRuleFiredInProgress && !IsSingleValidationElement($(this).attr("id"))) return this;
+
+        if (addChangeHandlers) {
             AddChangeHandler(this);
             return this;
-        }  
+        }
 
         if (this.val() == null) {
             AddError(this.attr("id"), errorMessage, "Should not be null.");
@@ -201,11 +323,13 @@ var addChangeHandlers = false;
         return this;
     },
     $.fn.Equal = function (item, errorMessage) {
-        if (addChangeHandlers)
-        {
+        if (!addChangeHandlers && !jFluentFullValidate && !IsFireRule($(this).attr("id"))) return this;
+        if (!addChangeHandlers && !jFluentFullValidate && !jFluentIsRuleFiredInProgress && !IsSingleValidationElement($(this).attr("id"))) return this;
+
+        if (addChangeHandlers) {
             AddChangeHandler(this);
             return this;
-        }  
+        }
 
         if (this.val() != item) {
             AddError(this.attr("id"), errorMessage, "The item is not equal.");
@@ -213,11 +337,13 @@ var addChangeHandlers = false;
         return this;
     },
     $.fn.NotEqual = function (item, errorMessage) {
-        if (addChangeHandlers)
-        {
+        if (!addChangeHandlers && !jFluentFullValidate && !IsFireRule($(this).attr("id"))) return this;
+        if (!addChangeHandlers && !jFluentFullValidate && !jFluentIsRuleFiredInProgress && !IsSingleValidationElement($(this).attr("id"))) return this;
+
+        if (addChangeHandlers) {
             AddChangeHandler(this);
             return this;
-        }  
+        }
 
         if (this.val() == item) {
             AddError(this.attr("id"), errorMessage, "The item is equal.");
@@ -225,11 +351,13 @@ var addChangeHandlers = false;
         return this;
     },
     $.fn.LengthGreaterThan = function (length, orEqual, errorMessage) {
-        if (addChangeHandlers)
-        {
+        if (!addChangeHandlers && !jFluentFullValidate && !IsFireRule($(this).attr("id"))) return this;
+        if (!addChangeHandlers && !jFluentFullValidate && !jFluentIsRuleFiredInProgress && !IsSingleValidationElement($(this).attr("id"))) return this;
+
+        if (addChangeHandlers) {
             AddChangeHandler(this);
             return this;
-        } 
+        }
 
         if (orEqual) {
             if (this.val().length < length) {
@@ -245,11 +373,13 @@ var addChangeHandlers = false;
         return this;
     },
     $.fn.LengthLessThan = function (length, orEqual, errorMessage) {
-        if (addChangeHandlers)
-        {
+        if (!addChangeHandlers && !jFluentFullValidate && !IsFireRule($(this).attr("id"))) return this;
+        if (!addChangeHandlers && !jFluentFullValidate && !jFluentIsRuleFiredInProgress && !IsSingleValidationElement($(this).attr("id"))) return this;
+
+        if (addChangeHandlers) {
             AddChangeHandler(this);
             return this;
-        }  
+        }
 
         if (orEqual) {
             if (this.val().length > length) {
@@ -265,11 +395,13 @@ var addChangeHandlers = false;
         return this;
     },
     $.fn.LengthBetween = function (lowerLimit, upperLimit, exclusive, errorMessage) {
-        if (addChangeHandlers)
-        {
+        if (!addChangeHandlers && !jFluentFullValidate && !IsFireRule($(this).attr("id"))) return this;
+        if (!addChangeHandlers && !jFluentFullValidate && !jFluentIsRuleFiredInProgress && !IsSingleValidationElement($(this).attr("id"))) return this;
+
+        if (addChangeHandlers) {
             AddChangeHandler(this);
             return this;
-        }  
+        }
 
         if (exclusive) {
             if (!(lowerLimit < this.val().length & this.val().length < upperLimit)) {
@@ -285,11 +417,13 @@ var addChangeHandlers = false;
         return this;
     },
     $.fn.GreaterThan = function (item, orEqual, errorMessage) {
-        if (addChangeHandlers)
-        {
+        if (!addChangeHandlers && !jFluentFullValidate && !IsFireRule($(this).attr("id"))) return this;
+        if (!addChangeHandlers && !jFluentFullValidate && !jFluentIsRuleFiredInProgress && !IsSingleValidationElement($(this).attr("id"))) return this;
+
+        if (addChangeHandlers) {
             AddChangeHandler(this);
             return this;
-        }  
+        }
 
         if (orEqual) {
             if (this.val() < item) {
@@ -305,11 +439,13 @@ var addChangeHandlers = false;
         return this;
     },
     $.fn.LessThan = function (item, orEqual, errorMessage) {
-        if (addChangeHandlers)
-        {
+        if (!addChangeHandlers && !jFluentFullValidate && !IsFireRule($(this).attr("id"))) return this;
+        if (!addChangeHandlers && !jFluentFullValidate && !jFluentIsRuleFiredInProgress && !IsSingleValidationElement($(this).attr("id"))) return this;
+
+        if (addChangeHandlers) {
             AddChangeHandler(this);
             return this;
-        }  
+        }
 
         if (orEqual) {
             if (this.val() > item) {
@@ -325,11 +461,13 @@ var addChangeHandlers = false;
         return this;
     },
     $.fn.Between = function (lowerLimit, upperLimit, exclusive, errorMessage) {
-        if (addChangeHandlers)
-        {
+        if (!addChangeHandlers && !jFluentFullValidate && !IsFireRule($(this).attr("id"))) return this;
+        if (!addChangeHandlers && !jFluentFullValidate && !jFluentIsRuleFiredInProgress && !IsSingleValidationElement($(this).attr("id"))) return this;
+
+        if (addChangeHandlers) {
             AddChangeHandler(this);
             return this;
-        }  
+        }
 
         if (exclusive) {
             if (!(lowerLimit < this.val() & this.val() < upperLimit)) {
@@ -345,41 +483,51 @@ var addChangeHandlers = false;
         return this;
     },
     $.fn.NotNullOrEmpty = function (errorMessage) {
-        if (addChangeHandlers)
-        {
+        if (!addChangeHandlers && !jFluentFullValidate && !IsFireRule($(this).attr("id"))) return this;
+        if (!addChangeHandlers && !jFluentFullValidate && !jFluentIsRuleFiredInProgress && !IsSingleValidationElement($(this).attr("id"))) return this;
+
+        if (addChangeHandlers) {
             AddChangeHandler(this);
             return this;
-        } 
-
+        }
+        
         if (this.val() == null || this.val() == '') {
             AddError(this.attr("id"), errorMessage, "Value should not be null or empty.");
         }
         return this;
     },
     $.fn.SelectRequired = function (func, errorMessage) {
-        if (addChangeHandlers)
-        {
+        if (!addChangeHandlers && !jFluentFullValidate && !IsFireRule($(this).attr("id"))) return this;
+        if (!addChangeHandlers && !jFluentFullValidate && !jFluentIsRuleFiredInProgress && !IsSingleValidationElement($(this).attr("id"))) return this;
+
+        if (addChangeHandlers) {
             AddChangeHandler(this);
             return this;
-        } 
-
+        }
         var inputType = $(this).attr("type");
-        $("input:" + inputType + "[name=" + $(this).attr("name") + "]:checked").Required(func, errorMessage, this.attr("id"));
+
+        //Call Required with value of checked value
+        return $("input:" + inputType + "[name=" + $(this).attr("name") + "]:checked").Required(func, errorMessage, $(this).attr("id"));
     },
     $.fn.Required = function (func, errorMessage, errorId) {
-        if (addChangeHandlers)
-        {
+        if (!addChangeHandlers && !jFluentFullValidate && !IsFireRule((errorId || $(this).attr("id")))) return this;
+        if (!addChangeHandlers && !jFluentFullValidate && !jFluentIsRuleFiredInProgress && !IsSingleValidationElement($(this).attr("id"))) return this;
+
+        if (addChangeHandlers) {
             AddChangeHandler(this);
             return this;
-        } 
+        }
 
-        if (!func.apply({}, [this.val()])) {
+        //Call validation function with field value
+        if (!func(this.val())) {
             AddError(errorId != null ? errorId : this.attr("id"), errorMessage, "Required rule was not met.");
         }
 
         return this;
     },
+    //Write errors to validation summary
     $.jFluentValidationSummary = function () {
+        //Get validation summary element
         var vSummary = $(".validation-summary-valid");
 
         if (vSummary.length == 0) {
@@ -394,7 +542,19 @@ var addChangeHandlers = false;
                 vSummary.removeClass("validation-summary-valid");
                 ul.html("");
                 for (i = 1; i < errors.length; i++) {
-                    ul.append("<li>" + errors[i][1] + "</li>")
+                    //Get error msg element
+                    var errorMessageElement = $("[data-valmsg-for='" + errors[i][0] + "']");
+                    //Get default error msg
+                    var defaultErrorMessage = errorMessageElement.contents().filter(function () {
+                        return this.nodeType == 3;
+                    }).text();
+                    //Display default error message or else error message in rule
+                    if (defaultErrorMessage == '') {
+                        ul.append("<li>" + errors[i][1] + "</li>")
+                    }
+                    else {
+                        ul.append("<li>" + defaultErrorMessage + "</li>")
+                    }
                 }
             }
             else {
@@ -406,9 +566,11 @@ var addChangeHandlers = false;
         }
     },
     $.jFluentIsValid = function () {
+        //Is valid if errors array contains a error else false
         return errors.length <= 1;
     },
     $.jFluentErrors = function () {
+        //Return errors array
         return errors;
     };
 })(jQuery);
@@ -416,44 +578,86 @@ var addChangeHandlers = false;
 /// Private functions ///
 //Clear error messages from form
 function ClearErrorMessages() {
-    $(".field-validation-error").empty();
+    //Remove errors lists
+    $(".field-validation-error ul").remove();
 
+    //Add valid class
     $(".field-validation-error").addClass("field-validation-valid");
 }
 
+function IsSingleValidationElement(id) {
+    if (jFluentValidateSingleId != null) {
+        if (id == jFluentValidateSingleId) {
+            return true;
+        }
+        return false;
+    }
+    return true;
+}
+
+function IsFireRule(id) {
+    if (jFluentFireRuleId != null) {
+        if (id == jFluentFireRuleId) {
+            return true;
+        }
+        return false;
+    }
+    return true;
+}
+
+function ClearSingleErrorMessages(id) {
+    //Remove errors lists
+    $("[data-valmsg-for='" + id + "'] ul").remove();
+    //Add valid class
+    $("[data-valmsg-for='" + id + "']").addClass("field-validation-valid");
+}
+
 function DisplayErrorMessages() {
+    //Loop through error array and display error messages in error message element
     for (i = 1; i < errors.length; i++) {
         DisplayErrorMessage(i);
     }
 }
 
-//Display error message in ValidationMessageFor element
+//Display error message in error msg element
 function DisplayErrorMessage(i) {
+    //Get error message element
     var errorMessageElement = $("[data-valmsg-for='" + errors[i][0] + "']");
 
-    var errorMessage = '';
+    var errorList = null;
 
-    if (errorMessageElement.children().first() != null) {
-        errorMessage = errorMessageElement.children().first().text();
-        errorMessageElement.empty();
+    //If no default error message then add error msg specified in rule
+    if (errorMessageElement.contents().filter(function () {
+            return this.nodeType == 3;
+    }).text() == '') {
+
+        //If error list does not exist then create else get the list
+        if (errorMessageElement.children("ul").length == 0) {
+            errorList = $("<ul></ul>");
+
+            $(errorMessageElement).append(errorList);
+        }
+        else {
+            errorList = errorMessageElement.children().first();
+        }
+
+        //Add error message to list
+        errorList.append($("<li>" + errors[i][1] + "</li>"));
     }
 
-    var span = document.createElement("span");
-    $(span).attr("generated", true);
-    $(span).attr("class", "");
-    $(span).text(errorMessage == '' ? errors[i][1] : errorMessage + "|" + errors[i][1]);
-
-    errorMessageElement.append(span);
+    //Remove valid class
     errorMessageElement.removeClass("field-validation-valid");
+    //Add error class
     errorMessageElement.addClass("field-validation-error");
 }
 
 //Add error to errors array
 function AddError(id, errorMessage, defaultErrorMessage) {
+    //Add error to errors array
     errors.push([id, errorMessage != null ? errorMessage : defaultErrorMessage]);
 }
 
-//Check Luhn algorithm for credit card validation
+//Luhn algorithm for credit card validation
 function CheckLuhn(input) {
     var sum = 0;
     var numdigits = input.length;
@@ -469,9 +673,15 @@ function CheckLuhn(input) {
 
 //Add change handler to input
 function AddChangeHandler(input) {
-    input.change(function () {
+    //Add change handler to input element
+    input.unbind("change");
+
+    input.change(function (e) {
         if (func != null) {
-            $.jFluentValidate();
+            //alert('fired');
+            //Call jFluent single field validation on change           
+            $(input).jFluentValidateSingle();
         }
+        e.stopPropagation();
     });
 }
