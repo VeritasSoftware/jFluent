@@ -5,7 +5,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 //Errors array - saves error element id and error msg pair
-var errors = [, ];
+//var errors = [, ];
+var errors = [];
 
 //Rules function
 var func = null;
@@ -490,7 +491,7 @@ var jFluentOptions = null;
             AddChangeHandler(this);
             return this;
         }
-        
+
         if (this.val() == null || this.val() == '') {
             AddError(this.attr("id"), errorMessage, "Value should not be null or empty.");
         }
@@ -543,7 +544,15 @@ var jFluentOptions = null;
                 ul.html("");
                 for (i = 1; i < errors.length; i++) {
                     //Get error msg element
-                    var errorMessageElement = $("[data-valmsg-for='" + errors[i][0] + "']");
+                    //var errorMessageElement = $("[data-valmsg-for='" + errors[i][0] + "']");
+                    var errorMessageElement = null;
+                    if (errors[i] != null) {
+                        errorMessageElement = $("[data-valmsg-for='" + errors[i][0] + "']");
+                    }
+
+                    if (errorMessageElement == null) {
+                        continue;
+                    }
                     //Get default error msg
                     var defaultErrorMessage = errorMessageElement.contents().filter(function () {
                         return this.nodeType == 3;
@@ -622,13 +631,20 @@ function DisplayErrorMessages() {
 //Display error message in error msg element
 function DisplayErrorMessage(i) {
     //Get error message element
-    var errorMessageElement = $("[data-valmsg-for='" + errors[i][0] + "']");
+    var errorMessageElement = null;
+    if (errors[i] != null) {
+        errorMessageElement = $("[data-valmsg-for='" + errors[i][0] + "']");
+    }
+
+    if (errorMessageElement == null) {
+        return;
+    }
 
     var errorList = null;
 
     //If no default error message then add error msg specified in rule
     if (errorMessageElement.contents().filter(function () {
-            return this.nodeType == 3;
+        return this.nodeType == 3;
     }).text() == '') {
 
         //If error list does not exist then create else get the list
