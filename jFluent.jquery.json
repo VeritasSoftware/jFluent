@@ -9,7 +9,7 @@
 	"validation",
     "plugins"
   ],
-  "version": "1.0.0",
+  "version": "1.0.3",
   "author": {
     "name": "Shantanu",
     "url": "https://github.com/VeritasSoftware/jFluent"
@@ -27,7 +27,7 @@
     }
   ],
   "bugs": "https://github.com/VeritasSoftware/jFluent/issues",
-  "homepage": "http://jqueryboilerplate.com",
+  "homepage": "https://github.com/VeritasSoftware/jFluent",
   "docs": "https://github.com/VeritasSoftware/jFluent#readme",
   "download": "https://github.com/VeritasSoftware/jFluent/archive/master.zip",
   "dependencies": {
